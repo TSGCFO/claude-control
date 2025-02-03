@@ -1,0 +1,31 @@
+{
+  "id": "test-plugin",
+  "name": "Test Plugin",
+  "version": "1.0.0",
+  "description": "A test plugin for the plugin system",
+  "author": "Test Author",
+  "capabilities": [
+    {
+      "type": "CUSTOM",
+      "name": "test",
+      "description": "Test capability",
+      "permissions": []
+    }
+  ],
+  "commands": [
+    {
+      "id": "test",
+      "name": "Test Command",
+      "description": "A test command",
+      "parameters": [
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "description": "Test message"
+        }
+      ],
+      "handler": "handleTest"
+    }
+  ]
+}
