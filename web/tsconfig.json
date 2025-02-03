@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
@@ -15,32 +16,24 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "allowJs": true,
-    "forceConsistentCasingInFileNames": true,
-    "types": ["vite/client", "jest", "node"],
-    "paths": {
-      "@/*": ["./src/*"]
-    },
-    "baseUrl": ".",
-    "outDir": "dist",
-    "declaration": true,
-    "sourceMap": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "types": [
+      "node",
+      "jest",
+      "@testing-library/jest-dom"
+    ]
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/**/*.d.ts",
-    "tests/**/*.ts",
-    "tests/**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build",
-    "coverage"
+    "src/**/*.js",
+    "src/**/*.jsx"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

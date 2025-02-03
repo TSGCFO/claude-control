@@ -49,115 +49,82 @@ export const createMockNotification = (overrides: Partial<Notification> = {}): N
   ...overrides
 });
 
-// Mock event creators
-export const createMockEvent = <T extends Event>(
-  eventType: string,
-  properties: Partial<T> = {}
-): T => {
-  const event = new Event(eventType) as T;
-  Object.assign(event, properties);
-  return event;
+// Type guards
+export const isMockMessage = (value: unknown): value is Message => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'role' in value &&
+    'content' in value &&
+    'timestamp' in value &&
+    'status' in value
+  );
 };
 
-export const createMockMessageEvent = (data: unknown = {}): MessageEvent => {
-  return new MessageEvent('message', {
-    data: JSON.stringify(data),
-    origin: 'http://localhost:8000',
-    lastEventId: '',
-    source: null,
-    ports: []
-  });
+export const isMockConversation = (value: unknown): value is Conversation => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'title' in value &&
+    'messages' in value &&
+    'createdAt' in value &&
+    'updatedAt' in value
+  );
 };
 
-// Mock response creators
-export const createMockSuccessResponse = (data: unknown = {}) => ({
-  ok: true,
-  status: 200,
-  json: async () => data,
-  text: async () => JSON.stringify(data),
-  headers: new Headers({ 'Content-Type': 'application/json' })
-});
+export const isMockOperation = (value: unknown): value is SystemOperation => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'type' in value &&
+    'action' in value &&
+    'params' in value &&
+    'requestId' in value
+  );
+};
 
-export const createMockErrorResponse = (status = 500, message = 'Internal Server Error') => ({
-  ok: false,
-  status,
-  json: async () => ({ error: message }),
-  text: async () => message,
-  headers: new Headers({ 'Content-Type': 'application/json' })
-});
+export const isMockResponse = (value: unknown): value is SystemResponse => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'type' in value &&
+    'action' in value &&
+    'requestId' in value &&
+    'success' in value &&
+    'timestamp' in value
+  );
+};
 
-// Mock WebSocket
-export class MockWebSocket {
-  static CONNECTING = 0;
-  static OPEN = 1;
-  static CLOSING = 2;
-  static CLOSED = 3;
+export const isMockNotification = (value: unknown): value is Notification => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'id' in value &&
+    'type' in value &&
+    'message' in value &&
+    'timestamp' in value &&
+    'isRead' in value
+  );
+};
 
-  url = '';
-  readyState = MockWebSocket.CONNECTING;
-  onopen: ((event: Event) => void) | null = null;
-  onclose: ((event: CloseEvent) => void) | null = null;
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
+// Test data generators
+export const generateMockData = <T>(count: number, generator: () => T): T[] => {
+  return Array.from({ length: count }, generator);
+};
 
-  constructor(url: string) {
-    this.url = url;
-    setTimeout(() => {
-      this.readyState = MockWebSocket.OPEN;
-      this.onopen?.(new Event('open'));
-    }, 0);
-  }
+// Helper to create a temporary test data
+export const createTempData = <T>(data: T): T => {
+  return { ...data };
+};
 
-  send = jest.fn();
-  close = jest.fn();
-}
+// Helper to clean up test data
+export const cleanupMockData = <T>(data: T[]): void => {
+  data.length = 0;
+};
 
-// Mock storage
-export class MockStorage implements Storage {
-  private store: Record<string, string> = {};
-  length = 0;
-
-  clear(): void {
-    this.store = {};
-    this.length = 0;
-  }
-
-  getItem(key: string): string | null {
-    return this.store[key] || null;
-  }
-
-  setItem(key: string, value: string): void {
-    this.store[key] = value;
-    this.length = Object.keys(this.store).length;
-  }
-
-  removeItem(key: string): void {
-    delete this.store[key];
-    this.length = Object.keys(this.store).length;
-  }
-
-  key(index: number): string | null {
-    const keys = Object.keys(this.store);
-    return keys[index] || null;
-  }
-}
-
-// Test utilities
-export const waitForNextTick = () => new Promise(resolve => setTimeout(resolve, 0));
-
-export const waitForCondition = async (
-  condition: () => boolean,
-  timeout = 5000,
-  interval = 100
-): Promise<void> => {
-  const startTime = Date.now();
-
-  while (Date.now() - startTime < timeout) {
-    if (condition()) {
-      return;
-    }
-    await new Promise((resolve) => setTimeout(resolve, interval));
-  }
-
-  throw new Error('Condition not met within timeout');
+// Helper to verify mock data
+export const verifyMockData = <T>(actual: T, expected: T): boolean => {
+  return JSON.stringify(actual) === JSON.stringify(expected);
 };

@@ -1,26 +1,20 @@
-/// <reference types="jest" />
-/// <reference types="@testing-library/jest-dom" />
+import { ReactNode } from 'react';
 
-declare namespace jest {
+declare module 'expect' {
   interface Matchers<R> {
-    toHaveStyleRule(property: keyof CSSStyleDeclaration, value: string): R;
-    toBeVisibleInViewport(): R;
-  }
-
-  interface Expect {
-    toHaveStyleRule(property: keyof CSSStyleDeclaration, value: string): void;
-    toBeVisibleInViewport(): void;
-  }
-
-  interface InverseAsymmetricMatchers {
-    toHaveStyleRule(property: keyof CSSStyleDeclaration, value: string): void;
-    toBeVisibleInViewport(): void;
+    toHaveBeenCalledWithProps(props: Record<string, unknown>): R;
+    toHaveBeenCalledWithChildren(children: ReactNode): R;
+    toHaveStyle(style: Record<string, string>): R;
   }
 }
 
-declare module '@jest/expect' {
-  interface AsymmetricMatchers {
-    toHaveStyleRule(property: keyof CSSStyleDeclaration, value: string): void;
-    toBeVisibleInViewport(): void;
+// Augment jest namespace
+declare global {
+  namespace jest {
+    interface Matchers<R> {
+      toHaveBeenCalledWithProps(props: Record<string, unknown>): R;
+      toHaveBeenCalledWithChildren(children: ReactNode): R;
+      toHaveStyle(style: Record<string, string>): R;
+    }
   }
 }

@@ -1,123 +1,110 @@
-import fs from 'fs';
-import path from 'path';
 import type { Message, Conversation } from '../types/chat';
-import type { SystemOperation, SystemResponse, SystemCapability } from '../types/system';
+import type { SystemOperation, SystemResponse } from '../types/system';
 import type { Notification } from '../store/ui';
 
-export interface MessageFixtures {
-  messages: Message[];
-  conversations: Conversation[];
-  notifications: Notification[];
-  systemOperations: SystemOperation[];
-  systemResponses: SystemResponse[];
-}
-
-export interface SystemFixtures {
-  capabilities: SystemCapability[];
-  status: {
-    isConnected: boolean;
-    lastOperation: SystemOperation | null;
-    lastResponse: SystemResponse | null;
-    pendingOperations: number;
-    errors: string[];
-  };
-  events: Array<{
-    type: string;
-    content: string;
-    timestamp: number;
-  }>;
-  metrics: {
-    cpu: { usage: number; timestamp: number };
-    memory: { total: number; used: number; timestamp: number };
-    disk: { total: number; used: number; timestamp: number };
-    network: { bytesIn: number; bytesOut: number; timestamp: number };
-  };
-}
-
-const FIXTURES_DIR = path.join(__dirname, 'fixtures');
-
-export const loadFixture = <T>(filename: string): T => {
-  const filePath = path.join(FIXTURES_DIR, filename);
-  try {
-    const fileContent = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(fileContent) as T;
-  } catch (error) {
-    throw new Error(`Failed to load fixture ${filename}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-  }
+// Load message fixtures
+export const loadMessageFixtures = (): Message[] => {
+  return [
+    {
+      id: 'msg-1',
+      role: 'user',
+      content: 'Hello, how can I help you?',
+      timestamp: 1625097600000,
+      status: 'sent'
+    },
+    {
+      id: 'msg-2',
+      role: 'assistant',
+      content: 'I can help you with various tasks. What would you like to do?',
+      timestamp: 1625097610000,
+      status: 'sent'
+    }
+  ];
 };
 
-export const loadMessageFixtures = (): MessageFixtures => {
-  return loadFixture<MessageFixtures>('messages.json');
+// Load conversation fixtures
+export const loadConversationFixtures = (): Conversation[] => {
+  return [
+    {
+      id: 'conv-1',
+      title: 'Test Conversation 1',
+      messages: loadMessageFixtures(),
+      createdAt: 1625097600000,
+      updatedAt: 1625097610000
+    },
+    {
+      id: 'conv-2',
+      title: 'Test Conversation 2',
+      messages: [],
+      createdAt: 1625097620000,
+      updatedAt: 1625097620000
+    }
+  ];
 };
 
-export const loadSystemFixtures = (): SystemFixtures => {
-  return loadFixture<SystemFixtures>('system.json');
+// Load system operation fixtures
+export const loadOperationFixtures = (): SystemOperation[] => {
+  return [
+    {
+      type: 'COMMAND',
+      action: 'EXECUTE',
+      params: { command: 'ls' },
+      requestId: 'op-1'
+    },
+    {
+      type: 'COMMAND',
+      action: 'EXECUTE',
+      params: { command: 'pwd' },
+      requestId: 'op-2'
+    }
+  ];
 };
 
-export const getTestMessage = (id: string): Message | undefined => {
-  const fixtures = loadMessageFixtures();
-  return fixtures.messages.find(message => message.id === id);
+// Load system response fixtures
+export const loadResponseFixtures = (): SystemResponse[] => {
+  return [
+    {
+      type: 'COMMAND',
+      action: 'EXECUTE',
+      requestId: 'op-1',
+      success: true,
+      timestamp: 1625097600000
+    },
+    {
+      type: 'COMMAND',
+      action: 'EXECUTE',
+      requestId: 'op-2',
+      success: false,
+      timestamp: 1625097610000
+    }
+  ];
 };
 
-export const getTestConversation = (id: string): Conversation | undefined => {
-  const fixtures = loadMessageFixtures();
-  return fixtures.conversations.find(conversation => conversation.id === id);
+// Load notification fixtures
+export const loadNotificationFixtures = (): Notification[] => {
+  return [
+    {
+      id: 'notif-1',
+      type: 'info',
+      message: 'Test notification 1',
+      timestamp: 1625097600000,
+      isRead: false
+    },
+    {
+      id: 'notif-2',
+      type: 'error',
+      message: 'Test notification 2',
+      timestamp: 1625097610000,
+      isRead: true
+    }
+  ];
 };
 
-export const getTestNotification = (id: string): Notification | undefined => {
-  const fixtures = loadMessageFixtures();
-  return fixtures.notifications.find(notification => notification.id === id);
+// Export all fixtures
+export default {
+  loadMessageFixtures,
+  loadConversationFixtures,
+  loadOperationFixtures,
+  loadResponseFixtures,
+  loadNotificationFixtures
 };
-
-export const getTestOperation = (requestId: string): SystemOperation | undefined => {
-  const fixtures = loadMessageFixtures();
-  return fixtures.systemOperations.find(operation => operation.requestId === requestId);
-};
-
-export const getTestResponse = (requestId: string): SystemResponse | undefined => {
-  const fixtures = loadMessageFixtures();
-  return fixtures.systemResponses.find(response => response.requestId === requestId);
-};
-
-export const getTestCapability = (type: string): SystemCapability | undefined => {
-  const fixtures = loadSystemFixtures();
-  return fixtures.capabilities.find(capability => capability.type === type);
-};
-
-export const getTestMetrics = () => {
-  const fixtures = loadSystemFixtures();
-  return fixtures.metrics;
-};
-
-export const getTestEvents = () => {
-  const fixtures = loadSystemFixtures();
-  return fixtures.events;
-};
-
-// Helper to create a temporary fixture for a test
-export const createTempFixture = async <T>(data: T): Promise<string> => {
-  const tempDir = path.join(FIXTURES_DIR, 'temp');
-  if (!fs.existsSync(tempDir)) {
-    fs.mkdirSync(tempDir, { recursive: true });
-  }
-
-  const tempFile = path.join(tempDir, `${Date.now()}.json`);
-  fs.writeFileSync(tempFile, JSON.stringify(data, null, 2));
-
-  return tempFile;
-};
-
-// Helper to clean up temporary fixtures
-export const cleanupTempFixtures = () => {
-  const tempDir = path.join(FIXTURES_DIR, 'temp');
-  if (fs.existsSync(tempDir)) {
-    fs.rmSync(tempDir, { recursive: true, force: true });
-  }
-};
-
-// Register cleanup on process exit
-process.on('exit', cleanupTempFixtures);
-process.on('SIGINT', () => {
-  cleanupTempFixtures();
-  process.exit();
-});

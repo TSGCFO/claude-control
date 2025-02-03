@@ -1,162 +1,113 @@
+import React, { ReactElement } from 'react';
 import '@testing-library/jest-dom';
-import { configure } from '@testing-library/react';
-import { act } from 'react-dom/test-utils';
-import userEvent from '@testing-library/user-event';
-import './types/react';
+import { render as rtlRender, RenderOptions, RenderResult } from '@testing-library/react';
+import { BrowserRouter } from 'react-router-dom';
+import { ThemeProvider } from '../contexts/ThemeContext';
+import { CommandProvider } from '../contexts/CommandContext';
+import './types/matchers';
 
-// Configure React Testing Library
-configure({
-  testIdAttribute: 'data-testid',
-  asyncUtilTimeout: 1000,
-  computedStyleSupportsPseudoElements: true,
-  defaultHidden: true
-});
+interface WrapperProps {
+  children: React.ReactNode;
+}
 
-// Add custom matchers for React components
+/**
+ * Custom render function that includes providers
+ */
+const customRender = (
+  ui: ReactElement,
+  options?: Omit<RenderOptions, 'wrapper'>
+): RenderResult => {
+  const AllTheProviders = ({ children }: WrapperProps) => 
+    React.createElement(ThemeProvider, null,
+      React.createElement(CommandProvider, null,
+        React.createElement(BrowserRouter, null,
+          children
+        )
+      )
+    );
+
+  return rtlRender(ui, { wrapper: AllTheProviders, ...options });
+};
+
+// Re-export everything
+export * from '@testing-library/react';
+
+// Override render method
+export { customRender as render };
+
+// React testing utilities
+export const mockComponent = (name: string): React.FC<{ children?: React.ReactNode } & Record<string, unknown>> => {
+  const MockComponent: React.FC<{ children?: React.ReactNode } & Record<string, unknown>> = ({ children, ...props }) => 
+    React.createElement('div', { 'data-testid': `mock-${name}`, ...props }, children);
+  MockComponent.displayName = `Mock${name}`;
+  return MockComponent;
+};
+
+export const mockHook = <T,>(returnValue: T): jest.Mock<T, []> => {
+  return jest.fn().mockReturnValue(returnValue);
+};
+
+export const mockContext = <T,>(defaultValue: T): {
+  Context: React.Context<T>;
+  useContext: () => T;
+} => {
+  const Context = React.createContext(defaultValue);
+  const useContext = (): T => React.useContext(Context);
+  return { Context, useContext };
+};
+
+export const mockEvent = {
+  preventDefault: jest.fn(),
+  stopPropagation: jest.fn()
+} as const;
+
+export const mockRef = <T,>(current: T): React.RefObject<T> => {
+  return { current } as React.RefObject<T>;
+};
+
+// React testing matchers
 expect.extend({
-  toHaveStyleRule(received: HTMLElement, property: keyof CSSStyleDeclaration, value: string) {
-    const style = window.getComputedStyle(received);
-    const pass = style[property] === value;
+  toHaveBeenCalledWithProps(received: jest.Mock, props: Record<string, unknown>) {
+    const calls = received.mock.calls;
+    const pass = calls.some(call => {
+      const callProps = call[0] || {};
+      return Object.entries(props).every(([key, value]) => callProps[key] === value);
+    });
+
     return {
       pass,
-      message: () =>
-        `expected ${received} to ${pass ? 'not ' : ''}have CSS property "${property}: ${value}"`
+      message: () => pass
+        ? `Expected mock not to have been called with props ${JSON.stringify(props)}`
+        : `Expected mock to have been called with props ${JSON.stringify(props)}`
     };
   },
 
-  toBeVisibleInViewport(received: HTMLElement) {
-    const rect = received.getBoundingClientRect();
-    const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-    const windowWidth = window.innerWidth || document.documentElement.clientWidth;
-    const isVisible = (
-      rect.top >= 0 &&
-      rect.left >= 0 &&
-      rect.bottom <= windowHeight &&
-      rect.right <= windowWidth
-    );
+  toHaveBeenCalledWithChildren(received: jest.Mock, children: React.ReactNode) {
+    const calls = received.mock.calls;
+    const pass = calls.some(call => {
+      const callProps = call[0] || {};
+      return callProps.children === children;
+    });
+
     return {
-      pass: isVisible,
-      message: () =>
-        `expected ${received} to ${isVisible ? 'not ' : ''}be visible in viewport`
+      pass,
+      message: () => pass
+        ? `Expected mock not to have been called with children ${String(children)}`
+        : `Expected mock to have been called with children ${String(children)}`
+    };
+  },
+
+  toHaveStyle(received: HTMLElement, style: Record<string, string>) {
+    const computedStyle = window.getComputedStyle(received);
+    const pass = Object.entries(style).every(
+      ([prop, value]) => computedStyle[prop as keyof CSSStyleDeclaration] === value
+    );
+
+    return {
+      pass,
+      message: () => pass
+        ? `Expected element not to have style ${JSON.stringify(style)}`
+        : `Expected element to have style ${JSON.stringify(style)}`
     };
   }
 });
-
-// Helper to wait for component updates
-export const waitForComponentUpdate = async (): Promise<void> => {
-  await act(async () => {
-    await new Promise(resolve => setTimeout(resolve, 0));
-  });
-};
-
-// Helper to simulate user interactions
-export const simulateUserInteraction = async (
-  element: HTMLElement,
-  interaction: 'click' | 'hover' | 'focus' | 'blur'
-): Promise<void> => {
-  switch (interaction) {
-    case 'click':
-      await userEvent.click(element);
-      break;
-    case 'hover':
-      await userEvent.hover(element);
-      break;
-    case 'focus':
-      await userEvent.tab(); // Tab to focus the element
-      break;
-    case 'blur':
-      element.blur();
-      break;
-  }
-  await waitForComponentUpdate();
-};
-
-// Helper to simulate form interactions
-export const simulateFormInteraction = async (
-  element: HTMLElement,
-  value: string
-): Promise<void> => {
-  await userEvent.type(element, value);
-  await waitForComponentUpdate();
-};
-
-// Helper to simulate keyboard interactions
-export const simulateKeyboardInteraction = async (
-  element: HTMLElement,
-  key: string
-): Promise<void> => {
-  await userEvent.type(element, `{${key}}`);
-  await waitForComponentUpdate();
-};
-
-// Helper to simulate drag and drop
-export const simulateDragAndDrop = async (
-  dragElement: HTMLElement,
-  dropElement: HTMLElement
-): Promise<void> => {
-  await userEvent.drag(dragElement);
-  await userEvent.drop(dropElement);
-  await waitForComponentUpdate();
-};
-
-// Helper to simulate file upload
-export const simulateFileUpload = async (
-  inputElement: HTMLElement,
-  files: File[]
-): Promise<void> => {
-  await userEvent.upload(inputElement, files);
-  await waitForComponentUpdate();
-};
-
-// Helper to simulate clipboard operations
-export const simulateClipboardOperation = async (
-  element: HTMLElement,
-  operation: 'copy' | 'cut' | 'paste'
-): Promise<void> => {
-  switch (operation) {
-    case 'copy':
-      await userEvent.copy(element);
-      break;
-    case 'cut':
-      await userEvent.cut(element);
-      break;
-    case 'paste':
-      await userEvent.paste(element);
-      break;
-  }
-  await waitForComponentUpdate();
-};
-
-// Helper to simulate scroll
-export const simulateScroll = async (
-  element: HTMLElement,
-  position: { top?: number; left?: number }
-): Promise<void> => {
-  element.scrollTo(position);
-  await waitForComponentUpdate();
-};
-
-// Helper to simulate resize
-export const simulateResize = async (
-  width: number,
-  height: number
-): Promise<void> => {
-  window.innerWidth = width;
-  window.innerHeight = height;
-  window.dispatchEvent(new Event('resize'));
-  await waitForComponentUpdate();
-};
-
-// Helper to simulate media query changes
-export const simulateMediaQuery = (query: string, matches: boolean): void => {
-  window.matchMedia = jest.fn().mockImplementation(q => ({
-    matches: q === query ? matches : false,
-    media: q,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  }));
-};

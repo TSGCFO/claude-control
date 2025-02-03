@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 
 // https://vitejs.dev/config/
@@ -7,44 +7,18 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
-    }
+      '@': path.resolve(__dirname, './src'),
+    },
   },
   server: {
-    port: 3000,
+    port: 5173,
     host: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-        ws: true
-      }
-    }
+    open: true,
   },
-  build: {
-    outDir: 'dist',
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@chakra-ui/react', '@emotion/react', '@emotion/styled', 'framer-motion'],
-          'store-vendor': ['zustand']
-        }
-      }
-    }
+  css: {
+    modules: {
+      localsConvention: 'camelCase',
+      generateScopedName: '[name]__[local]__[hash:base64:5]',
+    },
   },
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react-router-dom',
-      '@chakra-ui/react',
-      '@emotion/react',
-      '@emotion/styled',
-      'framer-motion',
-      'zustand'
-    ]
-  }
 });
