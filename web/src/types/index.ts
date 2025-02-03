@@ -30,6 +30,15 @@ export interface Settings {
   confirmDangerous: boolean;
 }
 
+// Message related types
+export interface Message {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: number;
+  status?: 'pending' | 'complete' | 'error';
+}
+
 // API related types
 export interface ApiResponse<T> {
   success: boolean;

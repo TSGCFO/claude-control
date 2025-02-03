@@ -1,61 +1,63 @@
 import React from 'react';
 import { useCommand } from '../../contexts/CommandContext';
-import { Task } from '../../types';
 import styles from './TaskHistory.module.css';
+import { Message } from '../../types';
 
 export const TaskHistory: React.FC = () => {
-  // In a real app, this would come from a store or context
-  const tasks: Task[] = []; // Placeholder for task history
-  const { executeCommand } = useCommand();
+  const { messages, clearMessages } = useCommand();
 
-  const handleRetry = async (command: string) => {
-    await executeCommand(command);
-  };
+  // Group messages by conversation
+  const conversations = messages.reduce((acc, message) => {
+    const date = new Date(message.timestamp).toLocaleDateString();
+    if (!acc[date]) {
+      acc[date] = [];
+    }
+    acc[date].push(message);
+    return acc;
+  }, {} as Record<string, Message[]>);
 
-  const formatDate = (timestamp: number): string => {
-    return new Date(timestamp).toLocaleString();
-  };
-
-  if (tasks.length === 0) {
+  if (Object.keys(conversations).length === 0) {
     return (
       <div className={styles.empty}>
-        <h2>No tasks yet</h2>
-        <p>Your command history will appear here</p>
+        <h2>No History</h2>
+        <p>Your conversations with Claude will appear here</p>
       </div>
     );
   }
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>Task History</h1>
-      <div className={styles.taskList}>
-        {tasks.map((task) => (
-          <div
-            key={task.id}
-            className={`${styles.taskItem} ${
-              task.status === 'error' ? styles.error : styles.success
-            }`}
-          >
-            <div className={styles.taskHeader}>
-              <span className={styles.timestamp}>
-                {formatDate(task.timestamp)}
-              </span>
-              <button
-                className={styles.retryButton}
-                onClick={() => handleRetry(task.command)}
-                aria-label="Retry command"
+      <div className={styles.header}>
+        <h2 className={styles.title}>History</h2>
+        <button
+          onClick={clearMessages}
+          className={styles.clearButton}
+          aria-label="Clear history"
+        >
+          Clear All
+        </button>
+      </div>
+      <div className={styles.conversationList}>
+        {Object.entries(conversations).map(([date, dateMessages]) => (
+          <div key={date} className={styles.dateGroup}>
+            <div className={styles.dateHeader}>{date}</div>
+            {dateMessages.map((message) => (
+              <div
+                key={message.id}
+                className={`${styles.conversationItem} ${
+                  message.role === 'assistant' ? styles.assistant : styles.user
+                }`}
               >
-                ↺ Retry
-              </button>
-            </div>
-            <div className={styles.command}>
-              <strong>Command:</strong>
-              <pre>{task.command}</pre>
-            </div>
-            <div className={styles.output}>
-              <strong>Output:</strong>
-              <pre>{task.output}</pre>
-            </div>
+                <div className={styles.messagePreview}>
+                  {message.content.length > 100
+                    ? `${message.content.slice(0, 100)}...`
+                    : message.content}
+                </div>
+                <div className={styles.messageTime}>
+                  {new Date(message.timestamp).toLocaleTimeString()}
+                </div>
+              </div>
+            ))}
           </div>
         ))}
       </div>

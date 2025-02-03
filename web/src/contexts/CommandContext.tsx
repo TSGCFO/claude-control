@@ -1,12 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-  status?: 'pending' | 'complete' | 'error';
-}
+import { Message } from '../types';
+import { UserRequest } from '../../../src/types';
+import { llmService } from '../services/llm';
 
 interface CommandContextType {
   messages: Message[];
@@ -32,6 +27,29 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({ children }) =>
     return Math.random().toString(36).substring(2) + Date.now().toString(36);
   };
 
+  const determineRequestType = (content: string): UserRequest['type'] => {
+    const lowerContent = content.toLowerCase();
+    if (lowerContent.includes('file') || 
+        lowerContent.includes('open') || 
+        lowerContent.includes('run') ||
+        lowerContent.includes('execute')) {
+      return 'SYSTEM_OPERATION';
+    }
+    if (lowerContent.includes('why') || 
+        lowerContent.includes('how') || 
+        lowerContent.includes('explain')) {
+      return 'REASONING';
+    }
+    return 'GENERAL';
+  };
+
+  const determineComplexity = (content: string): UserRequest['complexity'] => {
+    const words = content.split(' ').length;
+    if (words < 5) return 'LOW';
+    if (words < 15) return 'MEDIUM';
+    return 'HIGH';
+  };
+
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isExecuting) return;
 
@@ -48,41 +66,25 @@ export const CommandProvider: React.FC<CommandProviderProps> = ({ children }) =>
     setMessages(prev => [...prev, userMessage]);
 
     try {
-      // Simulate assistant response
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      // Create request for LLM
+      const request: UserRequest = {
+        type: determineRequestType(content),
+        content,
+        complexity: determineComplexity(content)
+      };
+
+      // Process through LLM service
+      const response = await llmService.processRequest(request);
+
       const assistantMessage: Message = {
         id: generateId(),
         role: 'assistant',
-        content: `I received your message: "${content}"\nI'm currently simulating responses, but in the future, I'll be able to help you with various tasks.`,
+        content: response.content,
         timestamp: Date.now(),
         status: 'complete',
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      
-      // In the future, this would be replaced with actual API call:
-      // const response = await fetch('/api/chat', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({ message: content }),
-      // });
-      // 
-      // if (!response.ok) {
-      //   throw new Error('Failed to send message');
-      // }
-      // 
-      // const data = await response.json();
-      // setMessages(prev => [...prev, {
-      //   id: generateId(),
-      //   role: 'assistant',
-      //   content: data.response,
-      //   timestamp: Date.now(),
-      //   status: 'complete',
-      // }]);
-      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
       setMessages(prev => prev.map(msg => 

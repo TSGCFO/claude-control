@@ -1,143 +1,71 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Settings as SettingsType, Theme } from '../../types';
 import styles from './Settings.module.css';
-
-interface SettingsSectionProps {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}
-
-const Section: React.FC<SettingsSectionProps> = ({ title, description, children }) => (
-  <div className={styles.section}>
-    <div className={styles.sectionHeader}>
-      <h2>{title}</h2>
-      <p>{description}</p>
-    </div>
-    <div className={styles.sectionContent}>
-      {children}
-    </div>
-  </div>
-);
 
 export const Settings: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
-  const [settings, setSettings] = useState<SettingsType>({
-    autoScroll: true,
-    maxHistory: 100,
-    confirmDangerous: true
-  });
-
-  const handleThemeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newTheme = e.target.value as Theme;
-    if (newTheme !== theme) {
-      toggleTheme();
-    }
-  };
-
-  const handleSettingChange = (key: keyof SettingsType, value: boolean | number) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  };
-
-  const handleMaxHistoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value, 10);
-    if (!isNaN(value) && value >= 0) {
-      handleSettingChange('maxHistory', value);
-    }
-  };
-
-  const handleClearHistory = () => {
-    if (!settings.confirmDangerous || window.confirm('Are you sure you want to clear all history?')) {
-      // Clear history logic would go here
-      console.log('Clearing history...');
-    }
-  };
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>Settings</h1>
+      <h2 className={styles.title}>Settings</h2>
       
-      <Section
-        title="Appearance"
-        description="Customize the look and feel of the interface"
-      >
+      <section className={styles.section}>
+        <h3 className={styles.sectionTitle}>Appearance</h3>
+        <p className={styles.sectionDescription}>
+          Customize the look and feel of the interface
+        </p>
         <div className={styles.setting}>
-          <label className={styles.label}>
+          <label htmlFor="theme" className={styles.label}>
             Theme
-            <select
-              value={theme}
-              onChange={handleThemeChange}
-              className={styles.select}
-              aria-label="Select theme"
-            >
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
           </label>
+          <select
+            id="theme"
+            className={styles.select}
+            value={theme}
+            onChange={() => toggleTheme()}
+          >
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
         </div>
-      </Section>
+      </section>
 
-      <Section
-        title="Behavior"
-        description="Configure how the interface behaves"
-      >
+      <section className={styles.section}>
+        <h3 className={styles.sectionTitle}>Behavior</h3>
+        <p className={styles.sectionDescription}>
+          Configure how the interface behaves
+        </p>
         <div className={styles.setting}>
-          <label className={styles.label}>
+          <label className={styles.checkboxLabel}>
             <input
               type="checkbox"
-              checked={settings.autoScroll}
-              onChange={(e) => handleSettingChange('autoScroll', e.target.checked)}
               className={styles.checkbox}
+              checked={true}
+              onChange={() => {/* TODO: Implement auto-scroll setting */}}
             />
             Auto-scroll to new output
           </label>
         </div>
+      </section>
 
-        <div className={styles.setting}>
-          <label className={styles.label}>
-            Maximum history items
-            <input
-              type="number"
-              value={settings.maxHistory}
-              onChange={handleMaxHistoryChange}
-              min="0"
-              className={styles.input}
-              aria-label="Maximum history items"
-            />
-          </label>
+      <section className={styles.section}>
+        <h3 className={styles.sectionTitle}>System</h3>
+        <p className={styles.sectionDescription}>
+          View system information and status
+        </p>
+        <div className={styles.systemInfo}>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Version</span>
+            <span className={styles.infoValue}>1.0.0</span>
+          </div>
+          <div className={styles.infoItem}>
+            <span className={styles.infoLabel}>Status</span>
+            <span className={`${styles.infoValue} ${styles.statusOnline}`}>
+              Online
+            </span>
+          </div>
         </div>
-
-        <div className={styles.setting}>
-          <label className={styles.label}>
-            <input
-              type="checkbox"
-              checked={settings.confirmDangerous}
-              onChange={(e) => handleSettingChange('confirmDangerous', e.target.checked)}
-              className={styles.checkbox}
-            />
-            Confirm dangerous operations
-          </label>
-        </div>
-      </Section>
-
-      <Section
-        title="System"
-        description="System-related settings and information"
-      >
-        <div className={styles.setting}>
-          <button
-            className={styles.dangerButton}
-            onClick={handleClearHistory}
-            aria-label="Clear all history"
-          >
-            Clear All History
-          </button>
-        </div>
-      </Section>
+      </section>
     </div>
   );
 };

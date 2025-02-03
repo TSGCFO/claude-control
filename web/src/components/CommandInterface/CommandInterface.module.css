@@ -2,59 +2,127 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
-  gap: var(--spacing-md);
+  background-color: var(--background-color);
+  color: var(--text-color);
 }
 
 .outputContainer {
-  flex-grow: 1;
-  background-color: var(--bg-secondary);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-md);
+  flex: 1;
   overflow-y: auto;
-  min-height: 300px;
-  border: 1px solid var(--border-color);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.output {
+.message {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  max-width: 80%;
+}
+
+.user {
+  align-self: flex-end;
+  background-color: var(--primary-color);
+  color: var(--primary-text);
+}
+
+.assistant {
+  align-self: flex-start;
+  background-color: var(--secondary-color);
+  color: var(--secondary-text);
+}
+
+.messageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+}
+
+.messageRole {
+  font-weight: 600;
+}
+
+.messageTime {
+  color: var(--muted-text);
+  font-size: 0.75rem;
+}
+
+.messageContent {
   white-space: pre-wrap;
-  font-family: var(--font-mono);
-  color: var(--text-primary);
+  word-break: break-word;
   line-height: 1.5;
 }
 
+.messageError {
+  color: var(--error-color);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
 .error {
-  color: var(--error);
-  margin-bottom: var(--spacing-md);
-  padding: var(--spacing-sm);
-  background-color: var(--error-bg);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid var(--error);
+  color: var(--error-color);
+  background-color: var(--error-background);
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+}
+
+.typing {
+  align-self: flex-start;
+  color: var(--muted-text);
+  font-style: italic;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.typing::after {
+  content: "";
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: currentColor;
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
 }
 
 .inputForm {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
+  gap: 1rem;
+  padding: 1rem;
+  background-color: var(--surface-color);
+  border-top: 1px solid var(--border-color);
 }
 
 .input {
-  width: 100%;
-  padding: var(--spacing-md);
-  background-color: var(--bg-secondary);
+  flex: 1;
+  padding: 0.75rem;
   border: 1px solid var(--border-color);
-  border-radius: var(--border-radius-md);
-  color: var(--text-primary);
-  font-family: var(--font-mono);
-  resize: vertical;
-  min-height: 100px;
-  transition: border-color var(--transition-fast);
+  border-radius: 0.375rem;
+  background-color: var(--input-background);
+  color: var(--text-color);
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: none;
+  min-height: 2.5rem;
+  max-height: 10rem;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px var(--primary-color-alpha);
 }
 
 .input:disabled {
@@ -63,18 +131,19 @@
 }
 
 .submitButton {
-  padding: var(--spacing-md) var(--spacing-lg);
-  background-color: var(--primary);
-  color: var(--text-on-primary);
+  align-self: flex-end;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--primary-color);
+  color: var(--primary-text);
   border: none;
-  border-radius: var(--border-radius-md);
+  border-radius: 0.375rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background-color 0.2s;
 }
 
 .submitButton:hover:not(:disabled) {
-  background-color: var(--primary-dark);
+  background-color: var(--primary-color-dark);
 }
 
 .submitButton:disabled {
@@ -82,12 +151,37 @@
   cursor: not-allowed;
 }
 
-@media (max-width: 768px) {
-  .container {
-    padding: var(--spacing-sm);
-  }
+/* CSS Variables are defined in global.css */
+:root {
+  --primary-color: #0066cc;
+  --primary-color-dark: #0052a3;
+  --primary-color-alpha: rgba(0, 102, 204, 0.2);
+  --secondary-color: #f0f0f0;
+  --background-color: #ffffff;
+  --surface-color: #f8f8f8;
+  --input-background: #ffffff;
+  --text-color: #1a1a1a;
+  --primary-text: #ffffff;
+  --secondary-text: #1a1a1a;
+  --muted-text: #666666;
+  --border-color: #e0e0e0;
+  --error-color: #dc2626;
+  --error-background: #fef2f2;
+}
 
-  .input {
-    min-height: 80px;
-  }
+[data-theme="dark"] {
+  --primary-color: #3b82f6;
+  --primary-color-dark: #2563eb;
+  --primary-color-alpha: rgba(59, 130, 246, 0.2);
+  --secondary-color: #374151;
+  --background-color: #1a1a1a;
+  --surface-color: #262626;
+  --input-background: #1a1a1a;
+  --text-color: #f3f4f6;
+  --primary-text: #ffffff;
+  --secondary-text: #f3f4f6;
+  --muted-text: #9ca3af;
+  --border-color: #404040;
+  --error-color: #ef4444;
+  --error-background: #7f1d1d;
 }

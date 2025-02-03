@@ -4,25 +4,24 @@ import styles from './CommandInterface.module.css';
 
 export const CommandInterface: React.FC = () => {
   const [input, setInput] = useState('');
-  const { executeCommand, isExecuting, output, error } = useCommand();
+  const { messages, isExecuting, error, sendMessage } = useCommand();
   const outputRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (outputRef.current) {
       outputRef.current.scrollTop = outputRef.current.scrollHeight;
     }
-  }, [output, error]);
+  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isExecuting) return;
 
     try {
-      await executeCommand(input);
+      await sendMessage(input);
       setInput('');
     } catch (err) {
-      // Error handling is managed by CommandContext
-      console.error('Failed to execute command:', err);
+      console.error('Failed to send message:', err);
     }
   };
 
@@ -33,6 +32,10 @@ export const CommandInterface: React.FC = () => {
     }
   };
 
+  const formatTimestamp = (timestamp: number) => {
+    return new Date(timestamp).toLocaleTimeString();
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.outputContainer} ref={outputRef}>
@@ -41,9 +44,34 @@ export const CommandInterface: React.FC = () => {
             Error: {error}
           </div>
         )}
-        {output && (
-          <div className={styles.output}>
-            {output}
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`${styles.message} ${
+              message.role === 'assistant' ? styles.assistant : styles.user
+            }`}
+          >
+            <div className={styles.messageHeader}>
+              <span className={styles.messageRole}>
+                {message.role === 'assistant' ? 'Claude' : 'You'}
+              </span>
+              <span className={styles.messageTime}>
+                {formatTimestamp(message.timestamp)}
+              </span>
+            </div>
+            <div className={styles.messageContent}>
+              {message.content}
+            </div>
+            {message.status === 'error' && (
+              <div className={styles.messageError}>
+                Failed to process message
+              </div>
+            )}
+          </div>
+        ))}
+        {isExecuting && (
+          <div className={styles.typing}>
+            Claude is thinking...
           </div>
         )}
       </div>
@@ -53,18 +81,18 @@ export const CommandInterface: React.FC = () => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Enter your command or task..."
+          placeholder="Send a message to Claude..."
           disabled={isExecuting}
           rows={3}
-          aria-label="Command input"
+          aria-label="Message input"
         />
         <button
           type="submit"
           className={styles.submitButton}
           disabled={isExecuting || !input.trim()}
-          aria-label={isExecuting ? 'Executing command...' : 'Execute command'}
+          aria-label={isExecuting ? 'Sending message...' : 'Send message'}
         >
-          {isExecuting ? 'Executing...' : 'Execute'}
+          {isExecuting ? 'Sending...' : 'Send'}
         </button>
       </form>
     </div>
