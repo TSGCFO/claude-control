@@ -3,13 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 
-import OpenAI, {
-  ChatCompletion,
-  ChatCompletionCreateParams,
-  ChatCompletionUsage,
-  OpenAIClient,
-  ClientOptions
-} from 'openai';
+import OpenAI from 'openai';
 import {
   UserRequest,
   ModelResponse,
@@ -19,38 +13,14 @@ import {
 
 interface ValidatedResponse {
   readonly content: string;
-  readonly usage: ChatCompletionUsage;
-}
-
-interface CompletionCandidate {
-  readonly choices?: Array<{
-    readonly message?: {
-      readonly content?: string;
-    };
-  }>;
-  readonly usage?: {
-    readonly prompt_tokens?: number;
-    readonly completion_tokens?: number;
+  readonly usage: {
+    prompt_tokens: number;
+    completion_tokens: number;
   };
 }
 
-const isValidCompletion = (response: unknown): response is ChatCompletion => {
-  try {
-    const candidate = response as CompletionCandidate;
-    return (
-      Array.isArray(candidate?.choices) &&
-      candidate.choices.length > 0 &&
-      typeof candidate.choices[0]?.message?.content === 'string' &&
-      typeof candidate.usage?.prompt_tokens === 'number' &&
-      typeof candidate.usage?.completion_tokens === 'number'
-    );
-  } catch {
-    return false;
-  }
-};
-
 export class OpenAIProvider implements LLMProvider {
-  private readonly client: OpenAIClient;
+  private readonly client: OpenAI;
   private readonly defaultSystemPrompt =
     'You are a computer control interface assistant. Your role is to help users ' +
     'control their computer through natural language commands. You can perform ' +
@@ -59,36 +29,19 @@ export class OpenAIProvider implements LLMProvider {
     'dangerous operations.';
 
   constructor(apiKey?: string) {
-    const key = apiKey || process.env.OPENAI_API_KEY;
+    const key = apiKey ?? process.env.OPENAI_API_KEY;
     if (!key) {
       throw new Error('OpenAI API key is required');
     }
 
-    const options: ClientOptions = { apiKey: key };
-    const client = new OpenAI(options);
-    if (!this.isValidClient(client)) {
-      throw new Error('Invalid OpenAI client initialization');
-    }
-
-    this.client = client;
-  }
-
-  private isValidClient(value: unknown): value is OpenAIClient {
-    try {
-      const client = value as OpenAIClient;
-      return (
-        typeof client?.chat?.completions?.create === 'function'
-      );
-    } catch {
-      return false;
-    }
+    this.client = new OpenAI({ apiKey: key });
   }
 
   async processRequest(request: UserRequest): Promise<ModelResponse> {
     const startTime = Date.now();
 
     try {
-      const params: ChatCompletionCreateParams = {
+      const completion = await this.client.chat.completions.create({
         model: this.selectModel(request),
         messages: [
           {
@@ -100,15 +53,10 @@ export class OpenAIProvider implements LLMProvider {
             content: request.content
           }
         ],
-        max_tokens: this.calculateMaxTokens(request)
-      };
+        max_completion_tokens: this.calculateMaxTokens(request)
+      });
 
-      const response = await this.client.chat.completions.create(params);
-      if (!isValidCompletion(response)) {
-        throw new Error('Invalid response format from OpenAI API');
-      }
-
-      const validated = this.validateResponse(response);
+      const validated = this.validateResponse(completion);
       return {
         content: validated.content,
         usage: {
@@ -122,38 +70,54 @@ export class OpenAIProvider implements LLMProvider {
     }
   }
 
-  private validateResponse(response: ChatCompletion): ValidatedResponse {
-    const content = response.choices[0]?.message?.content;
-    const usage = response.usage;
-
-    if (!content || !usage) {
-      throw new Error('Invalid response format from OpenAI API');
-    }
-
-    return { content, usage };
-  }
-
   private selectModel(request: UserRequest): string {
     switch (request.type) {
       case 'SYSTEM_OPERATION':
+        // Use GPT-4o for complex system operations
         return 'gpt-4o-2024-08-06';
       case 'REASONING':
+        if (request.complexity === 'HIGH') {
+          // Use o1 for complex reasoning tasks
+          return 'o1-2024-12-17';
+        }
+        // Use o3-mini for standard reasoning tasks
         return 'o3-mini-2025-01-31';
       default:
-        return request.complexity === 'LOW'
-          ? 'gpt-4o-mini-2024-07-18'
-          : 'gpt-4o-2024-08-06';
+        if (request.complexity === 'HIGH') {
+          // Use GPT-4o for complex general tasks
+          return 'gpt-4o-2024-08-06';
+        }
+        // Use o3-mini for standard tasks
+        return 'o3-mini-2025-01-31';
     }
   }
 
+  private validateResponse(completion: any): ValidatedResponse {
+    const content = completion.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error('Invalid response format from OpenAI API');
+    }
+
+    return {
+      content,
+      usage: {
+        prompt_tokens: completion.usage.prompt_tokens,
+        completion_tokens: completion.usage.completion_tokens
+      }
+    };
+  }
+
   private calculateMaxTokens(request: UserRequest): number {
-    switch (request.type) {
-      case 'SYSTEM_OPERATION':
-        return 4096;
-      case 'REASONING':
-        return 2048;
+    const model = this.selectModel(request);
+    switch (model) {
+      case 'gpt-4o-2024-08-06':
+        return 16384; // GPT-4o max output tokens
+      case 'o1-2024-12-17':
+        return 100000; // o1 max output tokens
+      case 'o3-mini-2025-01-31':
+        return 100000; // o3-mini max output tokens
       default:
-        return request.complexity === 'LOW' ? 1024 : 2048;
+        return 16384; // Default to GPT-4o limit
     }
   }
 
@@ -165,10 +129,10 @@ export class OpenAIProvider implements LLMProvider {
     if (error instanceof Error) {
       llmError.message = error.message;
       if ('status' in error) {
-        llmError.status = error.status as number;
+        llmError.status = (error as { status: number }).status;
       }
       if ('code' in error) {
-        llmError.code = error.code as string;
+        llmError.code = (error as { code: string }).code;
       }
     } else {
       llmError.message = String(error);
