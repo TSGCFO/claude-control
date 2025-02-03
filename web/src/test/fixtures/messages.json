@@ -1,0 +1,86 @@
+{
+  "messages": [
+    {
+      "id": "msg-1",
+      "role": "user",
+      "content": "Hello, how can I help you today?",
+      "timestamp": 1706932800000,
+      "status": "sent"
+    },
+    {
+      "id": "msg-2",
+      "role": "assistant",
+      "content": "I can help you with managing your computer through natural language commands. What would you like to do?",
+      "timestamp": 1706932810000,
+      "status": "sent"
+    },
+    {
+      "id": "msg-3",
+      "role": "user",
+      "content": "/execute ls -la",
+      "timestamp": 1706932820000,
+      "status": "sent"
+    },
+    {
+      "id": "msg-4",
+      "role": "system",
+      "content": "Command executed successfully",
+      "timestamp": 1706932830000,
+      "status": "sent"
+    }
+  ],
+  "conversations": [
+    {
+      "id": "conv-1",
+      "title": "System Commands",
+      "messages": ["msg-1", "msg-2", "msg-3", "msg-4"],
+      "createdAt": 1706932800000,
+      "updatedAt": 1706932830000,
+      "metadata": {
+        "context": "system-commands",
+        "tags": ["command", "file-system"]
+      }
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif-1",
+      "type": "success",
+      "message": "Command executed successfully",
+      "timestamp": 1706932830000,
+      "isRead": false
+    },
+    {
+      "id": "notif-2",
+      "type": "info",
+      "message": "System check completed",
+      "timestamp": 1706932840000,
+      "isRead": true
+    }
+  ],
+  "systemOperations": [
+    {
+      "type": "COMMAND",
+      "action": "EXECUTE",
+      "params": {
+        "command": "ls",
+        "args": ["-la"]
+      },
+      "requestId": "op-1",
+      "timestamp": 1706932820000
+    }
+  ],
+  "systemResponses": [
+    {
+      "type": "COMMAND",
+      "action": "EXECUTE",
+      "requestId": "op-1",
+      "success": true,
+      "data": {
+        "output": "total 16\ndrwxr-xr-x  4 user  group  128 Feb  3 00:00 .\ndrwxr-xr-x  3 user  group   96 Feb  3 00:00 ..",
+        "exitCode": 0
+      },
+      "timestamp": 1706932830000
+    }
+  ]
+}

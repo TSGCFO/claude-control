@@ -1,28 +1,23 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
-import {
+import type {
+  SystemState,
   SystemOperation,
   SystemResponse,
-  SystemEvent,
   SystemCapability,
-  SystemOperationType,
-  SystemStatus
+  SystemStatus,
+  SystemEvent
 } from '../types/system';
 
-interface SystemState {
-  capabilities: SystemCapability[];
-  status: SystemStatus;
-  events: SystemEvent[];
-  isInitialized: boolean;
-}
-
 interface SystemActions {
-  executeOperation: (operation: SystemOperation) => Promise<SystemResponse>;
+  executeOperation: (operation: Omit<SystemOperation, 'requestId'>) => Promise<SystemResponse>;
   cancelOperation: (requestId: string) => void;
   clearErrors: () => void;
   updateStatus: (status: Partial<SystemStatus>) => void;
   refreshCapabilities: () => Promise<void>;
+  addEvent: (event: Omit<SystemEvent, 'timestamp'>) => void;
+  clearEvents: () => void;
 }
 
 const initialState: SystemState = {
@@ -44,33 +39,32 @@ export const useSystemStore = create<SystemState & SystemActions>()(
       (set) => ({
         ...initialState,
 
-        executeOperation: async (operation: SystemOperation) => {
-          const requestId = operation.requestId || uuidv4();
-          const operationWithId = { ...operation, requestId };
+        executeOperation: async (operation) => {
+          const requestId = uuidv4();
+          const fullOperation = { ...operation, requestId };
 
           // Update pending operations
-          set((state: SystemState) => ({
+          set((state) => ({
             status: {
               ...state.status,
               pendingOperations: state.status.pendingOperations + 1,
-              lastOperation: operationWithId
+              lastOperation: fullOperation
             }
           }));
 
           try {
-            // TODO: Send operation to backend
-            // const response = await sendOperationToBackend(operationWithId);
+            // TODO: Execute operation through appropriate system handler
+            // const response = await executeSystemOperation(fullOperation);
             const response: SystemResponse = {
               type: operation.type,
               action: operation.action,
               requestId,
               success: true,
-              data: undefined,
               timestamp: Date.now()
             };
 
             // Update state with response
-            set((state: SystemState) => ({
+            set((state) => ({
               status: {
                 ...state.status,
                 pendingOperations: state.status.pendingOperations - 1,
@@ -90,7 +84,7 @@ export const useSystemStore = create<SystemState & SystemActions>()(
             };
 
             // Update state with error
-            set((state: SystemState) => ({
+            set((state) => ({
               status: {
                 ...state.status,
                 pendingOperations: state.status.pendingOperations - 1,
@@ -104,17 +98,24 @@ export const useSystemStore = create<SystemState & SystemActions>()(
         },
 
         cancelOperation: (requestId: string) => {
-          // TODO: Send cancel request to backend
-          set((state: SystemState) => ({
+          // TODO: Implement operation cancellation
+          set((state) => ({
             status: {
               ...state.status,
-              pendingOperations: Math.max(0, state.status.pendingOperations - 1)
+              pendingOperations: Math.max(0, state.status.pendingOperations - 1),
+              lastResponse: {
+                type: state.status.lastOperation?.type || 'COMMAND',
+                action: 'CANCEL',
+                requestId,
+                success: true,
+                timestamp: Date.now()
+              }
             }
           }));
         },
 
         clearErrors: () => {
-          set((state: SystemState) => ({
+          set((state) => ({
             status: {
               ...state.status,
               errors: []
@@ -122,8 +123,8 @@ export const useSystemStore = create<SystemState & SystemActions>()(
           }));
         },
 
-        updateStatus: (status: Partial<SystemStatus>) => {
-          set((state: SystemState) => ({
+        updateStatus: (status) => {
+          set((state) => ({
             status: {
               ...state.status,
               ...status
@@ -133,16 +134,16 @@ export const useSystemStore = create<SystemState & SystemActions>()(
 
         refreshCapabilities: async () => {
           try {
-            // TODO: Fetch capabilities from backend
+            // TODO: Fetch capabilities from system
             const capabilities: SystemCapability[] = [
               {
-                type: 'FILE' as SystemOperationType,
+                type: 'FILE',
                 actions: ['READ', 'WRITE', 'DELETE'],
                 permissions: ['read', 'write'],
                 isAvailable: true
               },
               {
-                type: 'PROCESS' as SystemOperationType,
+                type: 'PROCESS',
                 actions: ['START', 'STOP', 'LIST'],
                 permissions: ['execute'],
                 isAvailable: true
@@ -151,13 +152,28 @@ export const useSystemStore = create<SystemState & SystemActions>()(
 
             set({ capabilities, isInitialized: true });
           } catch (error) {
-            set((state: SystemState) => ({
+            set((state) => ({
               status: {
                 ...state.status,
                 errors: [...state.status.errors, error instanceof Error ? error.message : 'Unknown error']
               }
             }));
           }
+        },
+
+        addEvent: (event) => {
+          const fullEvent: SystemEvent = {
+            ...event,
+            timestamp: Date.now()
+          };
+
+          set((state) => ({
+            events: [...state.events, fullEvent]
+          }));
+        },
+
+        clearEvents: () => {
+          set({ events: [] });
         }
       }),
       {
@@ -167,22 +183,3 @@ export const useSystemStore = create<SystemState & SystemActions>()(
     )
   )
 );
-
-// Selectors
-export const selectIsConnected = (state: SystemState) => state.status.isConnected;
-
-export const selectPendingOperations = (state: SystemState) => state.status.pendingOperations;
-
-export const selectSystemErrors = (state: SystemState) => state.status.errors;
-
-export const selectLastOperation = (state: SystemState) => state.status.lastOperation;
-
-export const selectLastResponse = (state: SystemState) => state.status.lastResponse;
-
-export const selectCapabilities = (state: SystemState) => state.capabilities;
-
-export const selectCapabilityByType = (state: SystemState, type: SystemOperationType) =>
-  state.capabilities.find((cap: SystemCapability) => cap.type === type);
-
-export const selectIsCapabilityAvailable = (state: SystemState, type: SystemOperationType) =>
-  selectCapabilityByType(state, type)?.isAvailable || false;

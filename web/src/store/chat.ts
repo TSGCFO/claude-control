@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
-import { ChatState, ChatActions, Message, Conversation } from '../types/chat';
+import type { ChatState, ChatActions, Message, Conversation } from '../types/chat';
 
 const initialState: ChatState = {
   conversations: {},
@@ -30,7 +30,7 @@ export const useChatStore = create<ChatState & ChatActions>()(
           };
 
           // Update conversation with new message
-          set((state: ChatState) => ({
+          set((state) => ({
             conversations: {
               ...state.conversations,
               [activeConversationId]: {
@@ -49,12 +49,12 @@ export const useChatStore = create<ChatState & ChatActions>()(
             // const response = await sendMessageToBackend(content);
 
             // Update message status to sent
-            set((state: ChatState) => ({
+            set((state) => ({
               conversations: {
                 ...state.conversations,
                 [activeConversationId]: {
                   ...state.conversations[activeConversationId],
-                  messages: state.conversations[activeConversationId].messages.map((m: Message) =>
+                  messages: state.conversations[activeConversationId].messages.map((m) =>
                     m.id === messageId ? { ...m, status: 'sent' } : m
                   )
                 }
@@ -63,12 +63,12 @@ export const useChatStore = create<ChatState & ChatActions>()(
             }));
           } catch (error) {
             // Update message status to error
-            set((state: ChatState) => ({
+            set((state) => ({
               conversations: {
                 ...state.conversations,
                 [activeConversationId]: {
                   ...state.conversations[activeConversationId],
-                  messages: state.conversations[activeConversationId].messages.map((m: Message) =>
+                  messages: state.conversations[activeConversationId].messages.map((m) =>
                     m.id === messageId
                       ? { ...m, status: 'error', error: error instanceof Error ? error.message : 'Unknown error' }
                       : m
@@ -82,7 +82,7 @@ export const useChatStore = create<ChatState & ChatActions>()(
         },
 
         clearConversation: (conversationId: string) => {
-          set((state: ChatState) => {
+          set((state) => {
             const newConversations = { ...state.conversations };
             delete newConversations[conversationId];
             return {
@@ -102,7 +102,7 @@ export const useChatStore = create<ChatState & ChatActions>()(
             updatedAt: Date.now()
           };
 
-          set((state: ChatState) => ({
+          set((state) => ({
             conversations: {
               ...state.conversations,
               [conversationId]: conversation
@@ -114,7 +114,7 @@ export const useChatStore = create<ChatState & ChatActions>()(
         },
 
         deleteConversation: (conversationId: string) => {
-          set((state: ChatState) => {
+          set((state) => {
             const newConversations = { ...state.conversations };
             delete newConversations[conversationId];
             return {
@@ -132,16 +132,16 @@ export const useChatStore = create<ChatState & ChatActions>()(
           const conversation = get().conversations[conversationId];
           if (!conversation) return;
 
-          const message = conversation.messages.find((m: Message) => m.id === messageId);
+          const message = conversation.messages.find((m) => m.id === messageId);
           if (!message || message.role !== 'user') return;
 
           // Reset message status
-          set((state: ChatState) => ({
+          set((state) => ({
             conversations: {
               ...state.conversations,
               [conversationId]: {
                 ...conversation,
-                messages: conversation.messages.map((m: Message) =>
+                messages: conversation.messages.map((m) =>
                   m.id === messageId ? { ...m, status: 'sending', error: undefined } : m
                 )
               }
@@ -153,12 +153,12 @@ export const useChatStore = create<ChatState & ChatActions>()(
         },
 
         updateMessage: (conversationId: string, messageId: string, updates: Partial<Message>) => {
-          set((state: ChatState) => ({
+          set((state) => ({
             conversations: {
               ...state.conversations,
               [conversationId]: {
                 ...state.conversations[conversationId],
-                messages: state.conversations[conversationId].messages.map((m: Message) =>
+                messages: state.conversations[conversationId].messages.map((m) =>
                   m.id === messageId ? { ...m, ...updates } : m
                 ),
                 updatedAt: Date.now()
@@ -174,15 +174,3 @@ export const useChatStore = create<ChatState & ChatActions>()(
     )
   )
 );
-
-// Selectors
-export const selectActiveConversation = (state: ChatState) =>
-  state.activeConversationId ? state.conversations[state.activeConversationId] : null;
-
-export const selectConversationMessages = (state: ChatState, conversationId: string) =>
-  state.conversations[conversationId]?.messages || [];
-
-export const selectLatestMessage = (state: ChatState, conversationId: string) => {
-  const messages = selectConversationMessages(state, conversationId);
-  return messages[messages.length - 1] || null;
-};

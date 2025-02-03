@@ -1,0 +1,93 @@
+{
+  "capabilities": [
+    {
+      "type": "FILE",
+      "actions": ["READ", "WRITE", "DELETE", "MOVE", "COPY", "LIST"],
+      "permissions": ["read", "write"],
+      "isAvailable": true
+    },
+    {
+      "type": "PROCESS",
+      "actions": ["START", "STOP", "LIST"],
+      "permissions": ["execute"],
+      "isAvailable": true
+    },
+    {
+      "type": "WINDOW",
+      "actions": ["FOCUS", "MINIMIZE", "MAXIMIZE", "CLOSE"],
+      "permissions": ["control"],
+      "isAvailable": true
+    },
+    {
+      "type": "BROWSER",
+      "actions": ["NAVIGATE", "CLICK", "TYPE", "SCROLL"],
+      "permissions": ["control"],
+      "isAvailable": true
+    },
+    {
+      "type": "SETTING",
+      "actions": ["GET", "SET"],
+      "permissions": ["read", "write"],
+      "isAvailable": true
+    }
+  ],
+  "status": {
+    "isConnected": true,
+    "lastOperation": {
+      "type": "COMMAND",
+      "action": "EXECUTE",
+      "params": {
+        "command": "ls",
+        "args": ["-la"]
+      },
+      "requestId": "op-1",
+      "timestamp": 1706932820000
+    },
+    "lastResponse": {
+      "type": "COMMAND",
+      "action": "EXECUTE",
+      "requestId": "op-1",
+      "success": true,
+      "data": {
+        "output": "total 16\ndrwxr-xr-x  4 user  group  128 Feb  3 00:00 .\ndrwxr-xr-x  3 user  group   96 Feb  3 00:00 ..",
+        "exitCode": 0
+      },
+      "timestamp": 1706932830000
+    },
+    "pendingOperations": 0,
+    "errors": []
+  },
+  "events": [
+    {
+      "type": "STATUS",
+      "content": "System initialized",
+      "timestamp": 1706932800000
+    },
+    {
+      "type": "STATUS",
+      "content": "Command executed",
+      "timestamp": 1706932830000
+    }
+  ],
+  "metrics": {
+    "cpu": {
+      "usage": 25.5,
+      "timestamp": 1706932830000
+    },
+    "memory": {
+      "total": 16384,
+      "used": 8192,
+      "timestamp": 1706932830000
+    },
+    "disk": {
+      "total": 1024000,
+      "used": 512000,
+      "timestamp": 1706932830000
+    },
+    "network": {
+      "bytesIn": 1024,
+      "bytesOut": 2048,
+      "timestamp": 1706932830000
+    }
+  }
+}
