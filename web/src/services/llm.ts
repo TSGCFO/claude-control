@@ -1,7 +1,7 @@
 import { UserRequest, ModelResponse } from '../../../src/types';
 
 export class LLMService {
-  private readonly API_URL = 'http://localhost:3001/api/chat';
+  private readonly API_URL = 'http://localhost:3002/api/chat';
 
   async processRequest(request: UserRequest): Promise<ModelResponse> {
     const startTime = Date.now();
