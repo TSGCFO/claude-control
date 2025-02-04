@@ -1,0 +1,218 @@
+# Machine Learning Configuration for Claude Control
+
+# Model Architectures
+
+## Command Prediction Model
+model:
+  name: command_predictor
+  type: transformer
+  architecture:
+    embedding_dim: 512
+    num_heads: 8
+    num_layers: 6
+    ffn_dim: 2048
+    dropout: 0.1
+  training:
+    batch_size: 32
+    learning_rate: 1e-4
+    warmup_steps: 1000
+    max_epochs: 100
+    early_stopping:
+      patience: 5
+      min_delta: 0.001
+
+## Intent Classification Model
+intent_classifier:
+  name: intent_classifier
+  type: bert
+  architecture:
+    model_size: base
+    hidden_size: 768
+    num_labels: 10
+    pooling: cls
+  training:
+    batch_size: 16
+    learning_rate: 2e-5
+    warmup_ratio: 0.1
+    max_epochs: 50
+
+## Reinforcement Learning
+rl_policy:
+  name: command_policy
+  type: ppo
+  architecture:
+    hidden_layers: [512, 256, 128]
+    activation: relu
+    value_network: shared
+  training:
+    gamma: 0.99
+    lambda_gae: 0.95
+    clip_ratio: 0.2
+    value_loss_coef: 0.5
+    entropy_coef: 0.01
+
+# Training Configuration
+
+## Data Processing
+data:
+  max_sequence_length: 512
+  max_examples_per_class: 10000
+  min_examples_per_class: 100
+  validation_split: 0.1
+  test_split: 0.1
+  augmentation:
+    enabled: true
+    techniques:
+      - synonym_replacement
+      - back_translation
+      - command_perturbation
+
+## Optimization
+optimization:
+  optimizer:
+    type: adamw
+    weight_decay: 0.01
+    gradient_clip: 1.0
+  scheduler:
+    type: linear_warmup_cosine_decay
+    warmup_ratio: 0.1
+    min_lr_ratio: 0.01
+
+## Hardware
+hardware:
+  training:
+    accelerator: gpu
+    precision: 16
+    devices: 1
+    strategy: ddp
+  inference:
+    device: cpu
+    quantization: dynamic
+    threads: 4
+
+# Evaluation Settings
+
+## Metrics
+metrics:
+  command_prediction:
+    - accuracy
+    - precision
+    - recall
+    - f1
+    - latency
+  intent_classification:
+    - accuracy
+    - confusion_matrix
+    - roc_auc
+    - pr_auc
+  rl_policy:
+    - average_reward
+    - success_rate
+    - episode_length
+    - value_loss
+
+## Thresholds
+thresholds:
+  command_accuracy: 0.95
+  intent_accuracy: 0.90
+  response_time_ms: 100
+  confidence_min: 0.80
+
+# Online Learning
+
+## Update Strategy
+online_learning:
+  update_frequency: 1000
+  batch_size: 64
+  min_samples: 500
+  max_buffer_size: 100000
+  importance_sampling: true
+
+## Drift Detection
+drift_detection:
+  method: kstest
+  window_size: 1000
+  threshold: 0.05
+  adaptation:
+    enabled: true
+    method: gradual
+
+# Resource Management
+
+## Memory
+memory:
+  model_max_mb: 1024
+  batch_max_mb: 256
+  cache_max_mb: 512
+  embedding_cache_mb: 128
+
+## Compute
+compute:
+  max_threads: 4
+  max_batch_size: 32
+  timeout_ms: 1000
+  max_concurrent: 10
+
+# Safety and Monitoring
+
+## Safety Checks
+safety:
+  input_validation:
+    enabled: true
+    max_length: 1000
+    sanitization: true
+  output_validation:
+    enabled: true
+    confidence_threshold: 0.8
+    safety_checks: true
+
+## Monitoring
+monitoring:
+  metrics_interval_sec: 60
+  log_level: info
+  profiling: true
+  alerts:
+    error_rate_threshold: 0.01
+    latency_threshold_ms: 500
+    memory_threshold_mb: 900
+
+# Feature Extraction
+
+## Text Features
+text_features:
+  embeddings:
+    model: bert-base
+    pooling: mean
+    cache_size: 10000
+  ngrams:
+    max_length: 3
+    min_frequency: 5
+  special_tokens:
+    - [CMD]
+    - [ARG]
+    - [PATH]
+    - [FLAG]
+
+## Context Features
+context_features:
+  history_length: 10
+  include_system_state: true
+  include_user_preferences: true
+  temporal_features: true
+
+# Deployment
+
+## Model Serving
+serving:
+  max_batch_size: 32
+  max_latency_ms: 100
+  timeout_ms: 1000
+  max_queue_size: 100
+  num_workers: 4
+
+## Versioning
+versioning:
+  strategy: semantic
+  keep_versions: 5
+  rollback_enabled: true
+  auto_update: true

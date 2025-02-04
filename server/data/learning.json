@@ -1,0 +1,44 @@
+[
+  {
+    "input": "hey",
+    "response": "Hello! I'm ready to help you control your computer. What would you like me to do?\n\nI can help you:\n- Launch applications\n- Close programs\n- Focus on specific windows\n- Perform file operations\n\nJust tell me what you need, and I'll translate your request into a precise system command.",
+    "success": false,
+    "error": "Failed to parse command: Invalid command type: I. Must be one of: FILE, APP, WEB, SYSTEM",
+    "timestamp": 1738677833520
+  },
+  {
+    "input": "how can Power Automate be utilized ",
+    "response": "Let me provide a structured response and explanation:\n\nCOMMAND_TYPE APP launch app=powerautomate\n\nPower Automate (formerly Microsoft Flow) can be utilized in several key ways:\n\n1. Workflow Automation\n- Automate repetitive tasks\n- Create workflows between applications\n- Set up automated notifications and alerts\n\n2. Data Collection & Processing\n- Automatically collect and process data from various sources\n- Create forms and surveys with automated responses\n- Extract data from emails or documents\n\n3. Business Process Automation\n- Automate approval processes\n- Schedule recurring tasks\n- Generate automated reports\n\n4. Integration\n- Connect different Microsoft 365 applications\n- Integrate with third-party services\n- Sync data between systems\n\nWould you like me to provide specific examples of Power Automate flows or help you launch the application to get started?",
+    "success": false,
+    "error": "Failed to parse command: Invalid command type: TYPE. Must be one of: FILE, APP, WEB, SYSTEM",
+    "timestamp": 1738677953657
+  },
+  {
+    "input": "check if I have it installed, and if there are any issues ",
+    "response": "I'll help check system information. Here's the command:\n\nSYSTEM check status=all\n\nThis will check the system status and configuration. I'll scan for installed applications and any potential issues.\n\nNote that I can provide more specific checks if you let me know what particular program or aspect you want to verify. For example:\n- Checking a specific application: APP check app=name\n- Checking system resources: SYSTEM check type=resources\n- Checking disk space: SYSTEM check type=storage\n\nWhat specifically would you like me to check?",
+    "success": false,
+    "error": "Failed to parse command: Invalid action 'check' for type 'SYSTEM'. Valid actions are: get, set, reset, initialize",
+    "timestamp": 1738678017547
+  },
+  {
+    "input": "hey",
+    "response": "Hello! I'm your computer control interface assistant. I can help you launch applications, close programs, manage files, and perform various system operations using simple commands. What would you like me to do?",
+    "success": false,
+    "error": "Failed to parse command: Invalid command type: I. Must be one of: FILE, APP, WEB, SYSTEM",
+    "timestamp": 1738679156298
+  },
+  {
+    "input": "check if power atutomate is correctly installed ",
+    "response": "I'll help you check if Power Automate is properly installed. Here's the command to check:\n\nSYSTEM check app=\"Power Automate Desktop\" exists=true\n\nI'm initiating a system check to verify if Power Automate is installed on your computer. This will confirm if the application is properly registered in your system.\n\nAfter running this check, we can determine if:\n1. The application is correctly installed\n2. The installation is properly registered in the system\n3. The basic components are present\n\nWould you like me to perform any additional checks or help you with anything else related to Power Automate?",
+    "success": false,
+    "error": "Failed to parse command: Invalid action 'check' for type 'SYSTEM'. Valid actions are: get, set, reset, initialize",
+    "timestamp": 1738679188408
+  },
+  {
+    "input": "is installed?",
+    "response": "I apologize, but your request seems incomplete. Could you clarify which application or software you are asking about? A complete request might look like:\n- \"Is Chrome installed?\"\n- \"Can I run Microsoft Word?\"\n\nI'm ready to help you check application availability or launch/close applications using specific commands.",
+    "success": false,
+    "error": "Failed to parse command: Invalid command type: I. Must be one of: FILE, APP, WEB, SYSTEM",
+    "timestamp": 1738679224109
+  }
+]

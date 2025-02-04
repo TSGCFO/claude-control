@@ -18,8 +18,15 @@
   "include": [
     "src/**/*",
     "src/core/**/*",
+    "src/core/ml/**/*",
     "src/core/nli/**/*",
-    "src/core/system/**/*"
+    "src/core/system/**/*",
+    "src/core/ml/models/**/*",
+    "src/core/ml/utils/**/*"
   ],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts"
+  ]
 }
