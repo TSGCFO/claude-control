@@ -1,6 +1,24 @@
 import { ToolResponse } from '../../types/langbase';
-import { executeCommand } from '../system/windows';
-import { readFile, writeFile } from '../system/file';
+import { WindowsSystemHandler } from '../system/windows';
+import { FileSystemIntegration } from '../system/file';
+import { CommandOperation, SystemContext } from '../../types/system';
+
+const fileSystem = new FileSystemIntegration();
+const windowsSystem = new WindowsSystemHandler();
+
+const defaultSystemContext: SystemContext = {
+  cwd: process.cwd(),
+  isAdmin: false,
+  env: Object.fromEntries(
+    Object.entries(process.env).filter(([_, v]) => v !== undefined) as [string, string][]
+  ),
+  platform: process.platform === 'win32' ? 'win32' :
+           process.platform === 'darwin' ? 'darwin' :
+           process.platform === 'linux' ? 'linux' : 'win32',
+  activeProcesses: [],
+  activeWindows: [],
+  activeBrowsers: []
+};
 
 export async function fileSystemTool(params: Record<string, unknown>): Promise<ToolResponse> {
   try {
@@ -10,20 +28,25 @@ export async function fileSystemTool(params: Record<string, unknown>): Promise<T
       content?: string;
     };
 
+    let data: string;
     switch (action) {
       case 'read':
-        const data = await readFile(path);
+        data = await fileSystem.read(path);
         return { success: true, data };
 
       case 'write':
         if (!content) {
           throw new Error('Content is required for write action');
         }
-        await writeFile(path, content);
+        await fileSystem.write(path, content);
+        return { success: true };
+
+      case 'delete':
+        await fileSystem.delete(path);
         return { success: true };
 
       default:
-        throw new Error(`Unsupported action: ${action}`);
+        throw new Error(`Unsupported action: ${action as string}`);
     }
   } catch (error) {
     return {
@@ -36,8 +59,14 @@ export async function fileSystemTool(params: Record<string, unknown>): Promise<T
 export async function systemCommandTool(params: Record<string, unknown>): Promise<ToolResponse> {
   try {
     const { command } = params as { command: string };
-    const result = await executeCommand(command);
-    return { success: true, data: result };
+    const commandOp: CommandOperation = {
+      type: 'COMMAND',
+      action: 'EXECUTE',
+      command,
+      args: []
+    };
+    const result = await windowsSystem.executeOperation(commandOp, defaultSystemContext);
+    return { success: true, data: result.data };
   } catch (error) {
     return {
       success: false,
@@ -56,7 +85,7 @@ export async function webNavigationTool(params: Record<string, unknown>): Promis
 
     // This is a placeholder - we'll implement actual browser control later
     await Promise.resolve(); // Placeholder for actual async operation
-    
+
     return {
       success: true,
       data: { action, url, selector }

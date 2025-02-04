@@ -20,22 +20,23 @@ export class ApplicationIntegration {
         throw new Error('Application name is required');
       }
 
-      const command = this.buildCommand(app, parameters);
-      const isWindowsExe = app.toLowerCase().endsWith('.exe');
-      const isWindowsSystemApp = this.windowsSystemApps.has(app.toLowerCase().replace('.exe', ''));
+      // Remove .exe if present for comparison
+      const baseApp = app.toLowerCase().replace('.exe', '');
+      const isWindowsSystemApp = this.windowsSystemApps.has(baseApp);
 
-      // For Windows system apps, try to find them in System32
-      let executablePath = command;
+      let executablePath: string;
       if (process.platform === 'win32' && isWindowsSystemApp) {
         const systemRoot = process.env.SystemRoot || 'C:\\Windows';
-        executablePath = path.join(systemRoot, 'System32', command);
+        executablePath = path.join(systemRoot, 'System32', `${baseApp}.exe`);
+      } else {
+        executablePath = app;
       }
 
       const childProcess = spawn(executablePath, [], {
         detached: true,
         stdio: 'ignore',
         windowsHide: false,
-        shell: !isWindowsExe
+        shell: !isWindowsSystemApp // Only use shell for non-system apps
       });
 
       // Wait for process to start
@@ -46,7 +47,7 @@ export class ApplicationIntegration {
             return;
           }
           this.runningProcesses.set(app, childProcess);
-          if (isWindowsExe) {
+          if (isWindowsSystemApp) {
             childProcess.unref();
           }
           resolve();
@@ -61,7 +62,7 @@ export class ApplicationIntegration {
         });
 
         // Handle auto-closing apps
-        if (this.autoClosingApps.has(app.toLowerCase().replace('.exe', ''))) {
+        if (this.autoClosingApps.has(baseApp)) {
           childProcess.once('exit', () => {
             this.runningProcesses.delete(app);
           });
@@ -209,9 +210,10 @@ export class ApplicationIntegration {
   }
 
   private async focusWindowsApp(app: string): Promise<void> {
+    const baseApp = app.toLowerCase().replace('.exe', '');
     const command = `
       powershell -command "
-        $process = Get-Process '${app}' -ErrorAction SilentlyContinue;
+        $process = Get-Process '${baseApp}' -ErrorAction SilentlyContinue;
         if ($process) {
           $window = $process.MainWindowHandle;
           if ($window) {

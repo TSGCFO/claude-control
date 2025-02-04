@@ -15,6 +15,11 @@
       "*": ["node_modules/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/**/*",
+    "src/core/**/*",
+    "src/core/nli/**/*",
+    "src/core/system/**/*"
+  ],
   "exclude": ["node_modules", "dist"]
 }
