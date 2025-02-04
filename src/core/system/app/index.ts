@@ -195,20 +195,6 @@ export class ApplicationIntegration {
     }
   }
 
-  private buildCommand(app: string, parameters: Record<string, string | number | boolean>): string {
-    const args = Object.entries(parameters)
-      .map(([key, value]) => {
-        if (typeof value === 'boolean') {
-          return value ? `--${key}` : '';
-        }
-        return `--${key}="${value}"`;
-      })
-      .filter(Boolean)
-      .join(' ');
-
-    return args ? `${app} ${args}` : app;
-  }
-
   private async focusWindowsApp(app: string): Promise<void> {
     const baseApp = app.toLowerCase().replace('.exe', '');
     const command = `
@@ -249,6 +235,7 @@ export class ApplicationIntegration {
     const baseMessage = `Failed to ${action} application`;
     const errorMessage = error instanceof Error ? error.message : String(error);
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     return new SystemIntegrationError(
       `${baseMessage}: ${errorMessage}`,
       {

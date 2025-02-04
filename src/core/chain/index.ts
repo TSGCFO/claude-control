@@ -1,208 +1,125 @@
-import { Command, ExecutionResult, SettingValue } from '../../types';
+import { BaseChain } from 'langchain/chains';
+import { SystemIntegration } from '../../types';
+import { ClaudeControlChain } from './base';
+import { CommandParserChain } from './parser';
+import { ExecutorChain } from './executor';
+import { BufferMemory } from 'langchain/memory';
+import { BaseMessage } from '@langchain/core/messages';
 
-interface ChainedCommand {
-  command: Command;
-  condition?: (prevResult: ExecutionResult) => boolean;
-  onSuccess?: (result: ExecutionResult) => void;
-  onError?: (error: Error) => void;
+interface ChainInput {
+  input: string;
 }
 
-export class CommandChain {
-  private commands: ChainedCommand[] = [];
-  private results: ExecutionResult[] = [];
-  private currentIndex = -1;
+interface ChainOutput {
+  success: boolean;
+  result: unknown;
+  error?: string;
+  thought?: string;
+}
 
-  addCommand(
-    command: Command,
-    options: {
-      condition?: (prevResult: ExecutionResult) => boolean;
-      onSuccess?: (result: ExecutionResult) => void;
-      onError?: (error: Error) => void;
-    } = {}
-  ): CommandChain {
-    this.commands.push({
-      command,
-      condition: options.condition,
-      onSuccess: options.onSuccess,
-      onError: options.onError
+interface MemoryVariables {
+  chat_history: BaseMessage[];
+}
+
+export class ControlChain extends BaseChain<ChainInput, ChainOutput> {
+  public memory: BufferMemory;
+  protected baseChain: ClaudeControlChain;
+  protected parserChain: CommandParserChain;
+  protected executorChain: ExecutorChain;
+
+  constructor(systemIntegration: SystemIntegration) {
+    super();
+    this.baseChain = new ClaudeControlChain(systemIntegration);
+    this.parserChain = new CommandParserChain();
+    this.executorChain = new ExecutorChain(systemIntegration);
+    this.memory = new BufferMemory({
+      memoryKey: 'chat_history',
+      returnMessages: true,
+      inputKey: 'input',
+      outputKey: 'output'
     });
-    return this;
   }
 
-  addConditionalCommand(
-    condition: (prevResult: ExecutionResult) => boolean,
-    command: Command
-  ): CommandChain {
-    return this.addCommand(command, { condition });
+  get inputKeys(): string[] {
+    return ['input'];
   }
 
-  async execute(
-    executor: (command: Command) => Promise<ExecutionResult>
-  ): Promise<ExecutionResult[]> {
-    this.results = [];
-    this.currentIndex = -1;
+  get outputKeys(): string[] {
+    return ['success', 'result', 'error', 'thought'];
+  }
 
-    for (const chainedCommand of this.commands) {
-      try {
-        this.currentIndex++;
+  async _call(values: ChainInput): Promise<ChainOutput> {
+    try {
+      // Get chat history
+      const memoryVars = await this.memory.loadMemoryVariables({}) as MemoryVariables;
 
-        // Check condition if present
-        if (chainedCommand.condition && this.results.length > 0) {
-          const prevResult = this.results[this.results.length - 1];
-          if (!chainedCommand.condition(prevResult)) {
-            continue; // Skip this command if condition is not met
+      // Process through base chain with agent capabilities
+      const baseResult = await this.baseChain._call({
+        input: values.input,
+        chat_history: memoryVars.chat_history
+      });
+
+      // If there's an action, execute it
+      if (baseResult.action) {
+        // Execute the action
+        const executionResult = await this.executorChain._call({
+          command: {
+            type: baseResult.action.type,
+            action: baseResult.action.name,
+            parameters: baseResult.action.args as Record<string, string>
           }
-        }
+        });
 
-        // Execute command
-        const result = await executor(chainedCommand.command);
-        this.results.push(result);
+        // Save to memory
+        await this.memory.saveContext(
+          { input: values.input },
+          { output: baseResult.output }
+        );
 
-        // Handle success callback
-        if (chainedCommand.onSuccess) {
-          chainedCommand.onSuccess(result);
-        }
-      } catch (error) {
-        // Handle error callback
-        if (chainedCommand.onError && error instanceof Error) {
-          chainedCommand.onError(error);
-        }
-        throw error; // Re-throw to stop chain execution
-      }
-    }
-
-    return this.results;
-  }
-
-  async undo(
-    executor: (command: Command) => Promise<ExecutionResult>
-  ): Promise<ExecutionResult[]> {
-    const undoResults: ExecutionResult[] = [];
-
-    // Undo commands in reverse order
-    for (let i = this.currentIndex; i >= 0; i--) {
-      const chainedCommand = this.commands[i];
-      const originalResult = this.results[i];
-
-      // Generate undo command based on original command type
-      const undoCommand = this.createUndoCommand(chainedCommand.command, originalResult);
-      if (undoCommand) {
-        try {
-          const result = await executor(undoCommand);
-          undoResults.push(result);
-        } catch (error) {
-          console.error(`Failed to undo command at index ${i}:`, error);
-          throw error;
-        }
-      }
-    }
-
-    // Clear results and reset index after successful undo
-    this.results = [];
-    this.currentIndex = -1;
-
-    return undoResults;
-  }
-
-  private createUndoCommand(command: Command, result: ExecutionResult): Command | null {
-    switch (command.type) {
-      case 'FILE':
-        return this.createFileUndoCommand(command);
-      case 'APP':
-        return this.createAppUndoCommand(command);
-      case 'WEB':
-        return this.createWebUndoCommand(command);
-      case 'SYSTEM':
-        return this.createSystemUndoCommand(command, result);
-      default:
-        return null;
-    }
-  }
-
-  private createFileUndoCommand(command: Command): Command | null {
-    switch (command.action) {
-      case 'write':
         return {
-          type: 'FILE',
-          action: 'delete',
-          parameters: {
-            path: command.parameters.path
-          },
-          contextId: command.contextId
+          success: executionResult.success,
+          result: executionResult.result,
+          error: executionResult.error,
+          thought: baseResult.thought
         };
-      case 'delete':
-        // Can't undo delete without original content
-        return null;
-      default:
-        return null;
+      }
+
+      // If no action, just return the response
+      await this.memory.saveContext(
+        { input: values.input },
+        { output: baseResult.output }
+      );
+
+      return {
+        success: true,
+        result: baseResult.output,
+        thought: baseResult.thought
+      };
+
+    } catch (error: unknown) {
+      return {
+        success: false,
+        result: null,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
+      };
     }
   }
 
-  private createAppUndoCommand(command: Command): Command | null {
-    switch (command.action) {
-      case 'launch':
-        return {
-          type: 'APP',
-          action: 'close',
-          parameters: {
-            app: command.parameters.app
-          },
-          contextId: command.contextId
-        };
-      default:
-        return null;
-    }
+  _chainType(): string {
+    return 'control_chain';
   }
 
-  private createWebUndoCommand(command: Command): Command | null {
-    switch (command.action) {
-      case 'navigate':
-        // Could implement browser back navigation
-        return null;
-      default:
-        return null;
-    }
-  }
-
-  private createSystemUndoCommand(command: Command, result: ExecutionResult): Command | null {
-    switch (command.action) {
-      case 'set':
-        if (this.isSettingValue(result.output)) {
-          return {
-            type: 'SYSTEM',
-            action: 'set',
-            parameters: {
-              setting: command.parameters.setting,
-              value: result.output
-            },
-            contextId: command.contextId
-          };
-        }
-        return null;
-      default:
-        return null;
-    }
-  }
-
-  private isSettingValue(value: unknown): value is SettingValue {
-    return (
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'boolean'
-    );
-  }
-
-  getResults(): ExecutionResult[] {
-    return [...this.results];
-  }
-
-  getCurrentIndex(): number {
-    return this.currentIndex;
-  }
-
-  reset(): void {
-    this.commands = [];
-    this.results = [];
-    this.currentIndex = -1;
+  async clearMemory(): Promise<void> {
+    await this.memory.clear();
   }
 }
+
+// Export individual chains for direct use if needed
+export { ClaudeControlChain } from './base';
+export { CommandParserChain } from './parser';
+export { ExecutorChain } from './executor';
+
+// Create and export default instance
+export const createControlChain = (systemIntegration: SystemIntegration): ControlChain => (
+  new ControlChain(systemIntegration)
+);
